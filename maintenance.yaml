@@ -1,0 +1,33 @@
+apiVersion: native/v1
+kind: Maintenance
+metadata:
+  name: k3d_deploy_system-maint
+  package: com.friddle.ainative.k3d_deploy_system
+  revision: 1
+  submitter: { kind: Human, name: friddle }
+spec:
+  instance_ref: k3d_deploy_system-inst
+  sub_type: k3d-deploy
+  health:
+    - command: docker --version
+    - command: k3d version
+    - command: kubectl version --client
+  terminalState:
+    - command: docker ps | grep -q ""
+    - command: k3d cluster list | grep -q native-cluster
+  anomalyHandling: |
+    # k3d 异常处理
+    ## docker 异常
+    - systemctl restart docker
+    - 磁盘满 → docker system prune -a
+
+    ## k3d 异常
+    - k3d cluster list 失败 → docker restart, 重试
+    - 集群不可用 → k3d cluster delete + k3d cluster create
+
+    ## kubectl 异常
+    - kubectl 不可用 → 重新下载安装
+
+    ## 安装失败流程
+    - probe 失败 → LOOP 记录 ERROR + session
+    - agent 自动提 bugfix proposal → 更新 Maintenance 文档

@@ -1,0 +1,41 @@
+apiVersion: native/v1
+kind: SystemInit
+metadata:
+  name: k3d_deploy_system-init
+  package: com.friddle.ainative.k3d_deploy_system
+  revision: 1
+  submitter: { kind: Human, name: friddle }
+spec:
+  forSubType: k3d-deploy
+  requires:
+    - type: environment
+    - type: git
+  installManual: |
+    # k3d 部署系统安装手册
+
+    ## 子系统安装 (按依赖顺序)
+    ### 1. Docker
+    apt-get install -y docker-ce docker-ce-cli containerd.io
+    验证: docker --version
+
+    ### 2. k3d (依赖 docker)
+    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+    验证: k3d version
+
+    ### 3. kubectl (依赖 k3d, 可选)
+    curl -Lo /usr/local/bin/kubectl https://dl.k8s.io/release/stable.txt/bin/linux/amd64/kubectl
+    chmod +x /usr/local/bin/kubectl
+    验证: kubectl version --client
+
+    ## 创建集群
+    k3d cluster create native-cluster --agents 2
+
+    ## 创建本地 registry
+    k3d registry create native-registry --port 5000
+
+    ## 发布模板
+    native run agent --agent k3d_deploy_system-agent --message "PublishTemplate: nginx-ingress"
+  probes:
+    - command: docker --version
+    - command: k3d version
+    - command: kubectl version --client

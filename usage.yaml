@@ -1,0 +1,29 @@
+apiVersion: native/v1
+kind: Usage
+metadata:
+  name: k3d_deploy_system-usage
+  package: com.friddle.ainative.k3d_deploy_system
+  revision: 1
+  submitter: { kind: Human, name: friddle }
+spec:
+  owner_type: system
+  owner_ref: k3d_deploy_system
+  sub_type: k3d-deploy
+  content: |
+    # k3d 部署系统使用手册
+
+    ## 基础命令
+    k3d cluster list              # 列出所有集群
+    k3d cluster create <name>     # 创建集群
+    k3d cluster delete <name>     # 删除集群
+    kubectl --context k3d-<name>  # 使用 kubectl 操作集群
+
+    ## 部署流程
+    1. native install k3d_deploy_system → 自动安装 docker/k3d/kubectl
+    2. k3d cluster create → 创建 K8s 集群
+    3. kubectl apply -f manifest.yaml → 部署应用
+    4. Maintenance.health probes → 自动检查健康状态
+
+    ## Agent 调用
+    native run agent --agent k3d_deploy_system-agent --message "创建集群: test, workers=3"
+    native run agent --agent k3d_deploy_system-agent --message "发布模板: nginx-deploy"
