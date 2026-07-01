@@ -1,35 +1,58 @@
-# k3d_deploy_system / description.yaml
-# Kind: SystemDescription（简单 k3d 部署系统, MVP 骨架）
 apiVersion: native/v1
 kind: SystemDescription
 metadata:
   name: k3d_deploy_system
-  package: com.github.friddle.k3d_deploy_system
-  revision: 1
+  package: com.friddle.ainative.k3d_deploy_system
+  revision: 2
   submitter: { kind: Human, name: friddle }
 spec:
-  goal: 基于 k3d(docker 内 k3s) 部署/发布; 起集群 -> 应用 manifest -> canary-check
-  type: release_system
+  goal: k3d 部署系统 — 基于 k3d(docker) 创建 K8s 集群并发布部署模板
+  type: deploy_system
   category: system
   authzMode: allow
-  sub_types:
-    - name: k3d
-      gitAddress: github.com/friddle/k3d_deploy_system
-      downloadUrl: ""
-  behaviors:
-    - create_cluster    # k3d cluster create
-    - deploy            # kubectl apply manifest
-    - canary_check      # 1 副本 -> 探活 -> 扩容
-  behaviorRules:
-    - 部署前确认镜像 digest; 失败回滚
-  dependencies:
-    - type: developer_system     # 需研发系统产出镜像
+  subsystems:
+    - role: docker
+      impls: [docker-ce]
+      default_impl: docker-ce
       required: true
+      install:
+        method: package
+        packages: [docker-ce, docker-ce-cli, containerd.io]
+        check: docker --version
+    - role: k3d
+      impls: [k3d-io]
+      default_impl: k3d-io
+      required: true
+      depends_on: [docker]
+      install:
+        method: script
+        script: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+        check: k3d version
+    - role: kubectl
+      impls: [kubectl]
+      default_impl: kubectl
+      required: false
+      depends_on: [k3d]
+      install:
+        method: binary
+        binary: kubectl
+        url: https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+        check: kubectl version --client
+  behaviors:
+    - CreateCluster
+    - CreateRegistry
+    - PublishTemplate
+  behaviorRules:
+    - 部署前检查 docker/k3d/kubectl 已安装
+    - k3d cluster create 先检查已有集群
+    - 模板发布走 git push
+    - 失败回滚: k3d cluster delete
+  dependencies:
     - type: environment
       required: true
-  dataModel:
-    entities: [ cluster, deployment, manifest ]
+    - type: git
+      required: false
   dataPermissions:
-    - object_type: agent
+    - object_type: instance
       id: "*"
-      auth_mode: dynamic
+      auth_mode: allow
