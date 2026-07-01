@@ -2,7 +2,7 @@ apiVersion: native/v1
 kind: SystemDescription
 metadata:
   name: k3d_deploy_system
-  package: com.friddle.ainative.k3d_deploy_system
+  package: com.github.friddle.k3d_deploy_system
   revision: 2
   submitter: { kind: Human, name: friddle }
 spec:
